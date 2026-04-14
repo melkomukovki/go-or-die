@@ -1,7 +1,7 @@
 // TODO: Поменяй имя модуля github.com/student/week_1 на своё и обнови все импорты
 module github.com/melkomukovki/go-or-die/payment
 
-go 1.26.1
+go 1.26
 
 require google.golang.org/grpc v1.79.2
 
