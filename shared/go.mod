@@ -1,6 +1,6 @@
 module github.com/melkomukovki/go-or-die/shared
 
-go 1.26.1
+go 1.26
 
 require (
 	github.com/go-faster/errors v0.7.1

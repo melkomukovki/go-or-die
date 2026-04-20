@@ -15,7 +15,8 @@ enum PaymentMethod {
   PAYMENT_METHOD_UNSPECIFIED = 0;
   PAYMENT_METHOD_CARD = 1;
   PAYMENT_METHOD_SBP = 2;
-  // TODO: Добавить остальные способы оплаты из описания задания
+  PAYMENT_METHOD_CREDIT_CARD = 3;
+  PAYMENT_METHOD_INVESTOR_MONEY = 4;
 }
 
 // Запрос на оплату заказа
@@ -23,7 +24,12 @@ message PayOrderRequest {
   // UUID заказа
   string order_uuid = 1;
 
-  // TODO: Добавить остальные поля из описания задания
+  // Выбранный способ оплаты
+  PaymentMethod payment_method = 2;
 }
 
-// TODO: Реализовать PayOrderResponse
+// Ответ на запрос оплаты заказа
+message PayOrderResponse {
+  // UUID транзакции оплаты
+  string transaction_uuid = 1;
+}
