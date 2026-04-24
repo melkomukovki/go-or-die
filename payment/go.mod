@@ -1,4 +1,3 @@
-// TODO: Поменяй имя модуля github.com/student/week_1 на своё и обнови все импорты
 module github.com/melkomukovki/go-or-die/payment
 
 go 1.26

@@ -25,10 +25,15 @@ const (
 type PaymentMethod int32
 
 const (
-	PaymentMethod_PAYMENT_METHOD_UNSPECIFIED    PaymentMethod = 0
-	PaymentMethod_PAYMENT_METHOD_CARD           PaymentMethod = 1
-	PaymentMethod_PAYMENT_METHOD_SBP            PaymentMethod = 2
-	PaymentMethod_PAYMENT_METHOD_CREDIT_CARD    PaymentMethod = 3
+	// Не указан
+	PaymentMethod_PAYMENT_METHOD_UNSPECIFIED PaymentMethod = 0
+	// Банковская карта
+	PaymentMethod_PAYMENT_METHOD_CARD PaymentMethod = 1
+	// Система быстрых платежей
+	PaymentMethod_PAYMENT_METHOD_SBP PaymentMethod = 2
+	// Кредитная карта
+	PaymentMethod_PAYMENT_METHOD_CREDIT_CARD PaymentMethod = 3
+	// Деньги инвестора
 	PaymentMethod_PAYMENT_METHOD_INVESTOR_MONEY PaymentMethod = 4
 )
 
