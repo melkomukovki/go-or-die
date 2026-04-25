@@ -121,7 +121,7 @@ func main() {
 	defer shutdownCancel()
 
 	if shutdownErr := httpServer.Shutdown(shutdownCtx); shutdownErr != nil {
-		slog.Error("ошибка при остановке HTTP серверва", "error", shutdownErr)
+		slog.Error("ошибка при остановке HTTP сервера", "error", shutdownErr)
 	}
 	slog.Info("HTTP сервер остановлен")
 }

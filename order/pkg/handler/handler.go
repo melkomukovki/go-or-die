@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -136,73 +137,59 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderv1.CreateOrder
 		}, nil
 	}
 
-	// Вспомогательная функция для получения детали
-	getPart := func(partUUID uuid.UUID) (*inventoryv1.Part, orderv1.CreateOrderRes) {
-		resp, err := h.inventoryClient.GetPart(ctx, &inventoryv1.GetPartRequest{
-			Uuid: partUUID.String(),
-		})
-		if err != nil {
-			st, ok := status.FromError(err)
-			if ok && st.Code() == codes.NotFound {
-				return nil, &orderv1.CreateOrderNotFound{
-					Code:    http.StatusNotFound,
-					Message: "деталь не найдена: " + partUUID.String(),
-				}
-			}
-			return nil, &orderv1.CreateOrderInternalServerError{
-				Code:    http.StatusInternalServerError,
-				Message: "ошибка при получении детали: " + err.Error(),
-			}
-		}
-
-		part := resp.GetPart()
-		// 3. Проверить stock_quantity > 0
-		if part.StockQuantity <= 0 {
-			return nil, &orderv1.CreateOrderConflict{
-				Code:    http.StatusConflict,
-				Message: "детали нет в наличии: " + part.Name,
-			}
-		}
-		return part, nil
+	// 2. Получить детали через InventoryService.ListParts
+	uuids := []string{req.HullUUID.String(), req.EngineUUID.String()}
+	if val, ok := req.ShieldUUID.Get(); ok && val != uuid.Nil {
+		uuids = append(uuids, val.String())
+	}
+	if val, ok := req.WeaponUUID.Get(); ok && val != uuid.Nil {
+		uuids = append(uuids, val.String())
 	}
 
-	// 2. Получить детали через InventoryService.GetPart
-	hull, res := getPart(req.HullUUID)
-	if res != nil {
-		return res, nil
-	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
-	engine, res := getPart(req.EngineUUID)
-	if res != nil {
-		return res, nil
+	resp, err := h.inventoryClient.ListParts(ctx, &inventoryv1.ListPartsRequest{
+		Uuids: uuids,
+	})
+	if err != nil {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
+			return &orderv1.CreateOrderNotFound{
+				Code:    http.StatusNotFound,
+				Message: "одна или несколько деталей не найдены",
+			}, nil
+		}
+		slog.Error("ошибка при получении деталей", "error", err)
+		return &orderv1.CreateOrderInternalServerError{
+			Code:    http.StatusInternalServerError,
+			Message: "внутренняя ошибка сервера",
+		}, nil
 	}
 
 	var totalPrice int64
-	totalPrice += hull.Price
-	totalPrice += engine.Price
-
-	var shieldUUID *uuid.UUID
-	if val, ok := req.ShieldUUID.Get(); ok && val != uuid.Nil {
-		shield, res := getPart(val)
-		if res != nil {
-			return res, nil
+	for _, part := range resp.Parts {
+		if part.StockQuantity <= 0 {
+			return &orderv1.CreateOrderConflict{
+				Code:    http.StatusConflict,
+				Message: "отсутствует деталь с UUID: " + part.Uuid,
+			}, nil
 		}
-		totalPrice += shield.Price
-		shieldUUID = &val
-	}
-
-	var weaponUUID *uuid.UUID
-	if val, ok := req.WeaponUUID.Get(); ok && val != uuid.Nil {
-		weapon, res := getPart(val)
-		if res != nil {
-			return res, nil
-		}
-		totalPrice += weapon.Price
-		weaponUUID = &val
+		totalPrice += part.Price
 	}
 
 	// 5. Сгенерировать order_uuid (UUID v4)
 	orderUUID := uuid.New()
+
+	var shieldUUID *uuid.UUID
+	if shield, ok := req.ShieldUUID.Get(); ok {
+		shieldUUID = &shield
+	}
+
+	var weaponUUID *uuid.UUID
+	if weapon, ok := req.WeaponUUID.Get(); ok {
+		weaponUUID = &weapon
+	}
 
 	// 6. Создать заказ со статусом PENDING_PAYMENT
 	order := Order{
@@ -266,6 +253,9 @@ func (h *OrderHandler) PayOrder(ctx context.Context, req *orderv1.PayOrderReques
 		}, nil
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	payResp, err := h.paymentClient.PayOrder(ctx, &paymentv1.PayOrderRequest{
 		OrderUuid:     params.OrderUUID.String(),
 		PaymentMethod: paymentMethod,
@@ -278,9 +268,10 @@ func (h *OrderHandler) PayOrder(ctx context.Context, req *orderv1.PayOrderReques
 				Message: st.Message(),
 			}, nil
 		}
+		slog.Error("ошибка при оплате заказа", "error", err)
 		return &orderv1.PayOrderInternalServerError{
 			Code:    http.StatusInternalServerError,
-			Message: "ошибка при оплате: " + err.Error(),
+			Message: "внутренняя ошибка сервера",
 		}, nil
 	}
 
