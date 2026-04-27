@@ -12,10 +12,19 @@ service PaymentService {
 
 // Способ оплаты
 enum PaymentMethod {
+  // Не указан
   PAYMENT_METHOD_UNSPECIFIED = 0;
+
+  // Банковская карта
   PAYMENT_METHOD_CARD = 1;
+
+  // Система быстрых платежей
   PAYMENT_METHOD_SBP = 2;
+
+  // Кредитная карта
   PAYMENT_METHOD_CREDIT_CARD = 3;
+
+  // Деньги инвестора
   PAYMENT_METHOD_INVESTOR_MONEY = 4;
 }
 

@@ -26,11 +26,16 @@ const (
 type PartType int32
 
 const (
+	// Не указан
 	PartType_PART_TYPE_UNSPECIFIED PartType = 0
-	PartType_PART_TYPE_HULL        PartType = 1
-	PartType_PART_TYPE_ENGINE      PartType = 2
-	PartType_PART_TYPE_SHIELD      PartType = 3
-	PartType_PART_TYPE_WEAPON      PartType = 4
+	// Корпус корабля
+	PartType_PART_TYPE_HULL PartType = 1
+	// Двигатель
+	PartType_PART_TYPE_ENGINE PartType = 2
+	// Защитный щит
+	PartType_PART_TYPE_SHIELD PartType = 3
+	// Вооружение
+	PartType_PART_TYPE_WEAPON PartType = 4
 )
 
 // Enum value maps for PartType.
@@ -180,8 +185,9 @@ func (x *Part) GetCreatedAt() *timestamppb.Timestamp {
 
 // Запрос на получение детали по UUID
 type GetPartRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Идентификатор детали
+	Uuid          string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,8 +231,9 @@ func (x *GetPartRequest) GetUuid() string {
 
 // Ответ на запрос получения детали по UUID
 type GetPartResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Part          *Part                  `protobuf:"bytes,1,opt,name=part,proto3" json:"part,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Информация о детали
+	Part          *Part `protobuf:"bytes,1,opt,name=part,proto3" json:"part,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -325,8 +332,9 @@ func (x *ListPartsRequest) GetUuids() []string {
 
 // Ответ на запрос получения списка деталей
 type ListPartsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Parts         []*Part                `protobuf:"bytes,1,rep,name=parts,proto3" json:"parts,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Список найденных деталей
+	Parts         []*Part `protobuf:"bytes,1,rep,name=parts,proto3" json:"parts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
