@@ -12,8 +12,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	svc "github.com/melkomukovki/go-or-die/payment/pkg/service"
-	paymentv1 "github.com/melkomukovki/go-or-die/shared/pkg/proto/payment/v1"
+	"github.com/melkomukovki/go-or-die/payment/pkg/app"
 )
 
 const (
@@ -47,7 +46,8 @@ func main() {
 			MinTime: grpcMinPingInterval,
 		}),
 	)
-	paymentv1.RegisterPaymentServiceServer(grpcServer, &svc.PaymentServer{})
+
+	app.RegisterServices(grpcServer)
 
 	// Включаем reflection для postman/grpcurl
 	reflection.Register(grpcServer)
