@@ -11,7 +11,7 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (model.Order, error) {
-	uuids := []string{req.HullUUID, req.EngineUUID}
+	uuids := []uuid.UUID{req.HullUUID, req.EngineUUID}
 	if req.ShieldUUID != nil {
 		uuids = append(uuids, *req.ShieldUUID)
 	}
@@ -38,7 +38,7 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 	orderUuid := uuid.New()
 
 	order := model.Order{
-		UUID:       orderUuid.String(),
+		UUID:       orderUuid,
 		HullUUID:   req.HullUUID,
 		EngineUUID: req.EngineUUID,
 		ShieldUUID: req.ShieldUUID,

@@ -10,6 +10,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/melkomukovki/go-or-die/inventory/internal/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -42,8 +43,8 @@ func (_m *PartService) EXPECT() *PartService_Expecter {
 }
 
 // Get provides a mock function for the type PartService
-func (_mock *PartService) Get(ctx context.Context, uuid string) (model.Part, error) {
-	ret := _mock.Called(ctx, uuid)
+func (_mock *PartService) Get(ctx context.Context, uuid1 uuid.UUID) (model.Part, error) {
+	ret := _mock.Called(ctx, uuid1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
@@ -51,16 +52,16 @@ func (_mock *PartService) Get(ctx context.Context, uuid string) (model.Part, err
 
 	var r0 model.Part
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (model.Part, error)); ok {
-		return returnFunc(ctx, uuid)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (model.Part, error)); ok {
+		return returnFunc(ctx, uuid1)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) model.Part); ok {
-		r0 = returnFunc(ctx, uuid)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) model.Part); ok {
+		r0 = returnFunc(ctx, uuid1)
 	} else {
 		r0 = ret.Get(0).(model.Part)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, uuid)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, uuid1)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -74,20 +75,20 @@ type PartService_Get_Call struct {
 
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
-//   - uuid string
-func (_e *PartService_Expecter) Get(ctx interface{}, uuid interface{}) *PartService_Get_Call {
-	return &PartService_Get_Call{Call: _e.mock.On("Get", ctx, uuid)}
+//   - uuid1 uuid.UUID
+func (_e *PartService_Expecter) Get(ctx interface{}, uuid1 interface{}) *PartService_Get_Call {
+	return &PartService_Get_Call{Call: _e.mock.On("Get", ctx, uuid1)}
 }
 
-func (_c *PartService_Get_Call) Run(run func(ctx context.Context, uuid string)) *PartService_Get_Call {
+func (_c *PartService_Get_Call) Run(run func(ctx context.Context, uuid1 uuid.UUID)) *PartService_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uuid.UUID
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
@@ -102,7 +103,7 @@ func (_c *PartService_Get_Call) Return(part model.Part, err error) *PartService_
 	return _c
 }
 
-func (_c *PartService_Get_Call) RunAndReturn(run func(ctx context.Context, uuid string) (model.Part, error)) *PartService_Get_Call {
+func (_c *PartService_Get_Call) RunAndReturn(run func(ctx context.Context, uuid1 uuid.UUID) (model.Part, error)) *PartService_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }

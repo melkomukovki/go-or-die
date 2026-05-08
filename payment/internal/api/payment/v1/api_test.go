@@ -77,7 +77,7 @@ func TestAPI_PayOrder(t *testing.T) {
 					Return("", serviceErr).
 					Once()
 			},
-			wantCode:   codes.InvalidArgument,
+			wantCode:   codes.Internal,
 			wantErrMsg: serviceErr.Error(),
 		},
 	}

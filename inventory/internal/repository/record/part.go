@@ -1,9 +1,13 @@
 package record
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Part struct {
-	UUID          string
+	UUID          uuid.UUID
 	Name          string
 	Description   string
 	Price         int64

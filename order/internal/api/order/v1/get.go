@@ -12,7 +12,7 @@ import (
 )
 
 func (a *api) GetOrder(ctx context.Context, params orderv1.GetOrderParams) (orderv1.GetOrderRes, error) {
-	order, err := a.orderService.Get(ctx, params.OrderUUID.String())
+	order, err := a.orderService.Get(ctx, params.OrderUUID)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrOrderNotFound):

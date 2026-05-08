@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
-
 	"github.com/melkomukovki/go-or-die/order/internal/api/order/v1/dto"
 	errs "github.com/melkomukovki/go-or-die/order/internal/errors"
 	orderv1 "github.com/melkomukovki/go-or-die/shared/pkg/openapi/order/v1"
@@ -43,7 +41,7 @@ func (a *api) CreateOrder(ctx context.Context, req *orderv1.CreateOrderRequest) 
 	}
 
 	return &orderv1.CreateOrderResponse{
-		OrderUUID:  uuid.MustParse(order.UUID),
+		OrderUUID:  order.UUID,
 		TotalPrice: order.TotalPrice,
 	}, nil
 }

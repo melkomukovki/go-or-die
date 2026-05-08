@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -15,7 +16,12 @@ import (
 
 func (a *api) GetPart(ctx context.Context, req *inventoryv1.GetPartRequest) (*inventoryv1.GetPartResponse, error) {
 	paramUuid := req.GetUuid()
-	part, err := a.partService.Get(ctx, paramUuid)
+	parsedUuid, err := uuid.Parse(req.GetUuid())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "неверный формат uuid: %s", paramUuid)
+	}
+
+	part, err := a.partService.Get(ctx, parsedUuid)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrInvalidUUID):

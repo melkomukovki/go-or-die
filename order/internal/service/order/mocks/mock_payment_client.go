@@ -10,6 +10,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/melkomukovki/go-or-die/order/internal/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -42,24 +43,26 @@ func (_m *PaymentClient) EXPECT() *PaymentClient_Expecter {
 }
 
 // PayOrder provides a mock function for the type PaymentClient
-func (_mock *PaymentClient) PayOrder(ctx context.Context, orderUUID string, method model.PaymentMethod) (string, error) {
+func (_mock *PaymentClient) PayOrder(ctx context.Context, orderUUID uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
 	ret := _mock.Called(ctx, orderUUID, method)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PayOrder")
 	}
 
-	var r0 string
+	var r0 uuid.UUID
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, model.PaymentMethod) (string, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, model.PaymentMethod) (uuid.UUID, error)); ok {
 		return returnFunc(ctx, orderUUID, method)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, model.PaymentMethod) string); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, model.PaymentMethod) uuid.UUID); ok {
 		r0 = returnFunc(ctx, orderUUID, method)
 	} else {
-		r0 = ret.Get(0).(string)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(uuid.UUID)
+		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, model.PaymentMethod) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, model.PaymentMethod) error); ok {
 		r1 = returnFunc(ctx, orderUUID, method)
 	} else {
 		r1 = ret.Error(1)
@@ -74,21 +77,21 @@ type PaymentClient_PayOrder_Call struct {
 
 // PayOrder is a helper method to define mock.On call
 //   - ctx context.Context
-//   - orderUUID string
+//   - orderUUID uuid.UUID
 //   - method model.PaymentMethod
 func (_e *PaymentClient_Expecter) PayOrder(ctx interface{}, orderUUID interface{}, method interface{}) *PaymentClient_PayOrder_Call {
 	return &PaymentClient_PayOrder_Call{Call: _e.mock.On("PayOrder", ctx, orderUUID, method)}
 }
 
-func (_c *PaymentClient_PayOrder_Call) Run(run func(ctx context.Context, orderUUID string, method model.PaymentMethod)) *PaymentClient_PayOrder_Call {
+func (_c *PaymentClient_PayOrder_Call) Run(run func(ctx context.Context, orderUUID uuid.UUID, method model.PaymentMethod)) *PaymentClient_PayOrder_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uuid.UUID
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uuid.UUID)
 		}
 		var arg2 model.PaymentMethod
 		if args[2] != nil {
@@ -103,12 +106,12 @@ func (_c *PaymentClient_PayOrder_Call) Run(run func(ctx context.Context, orderUU
 	return _c
 }
 
-func (_c *PaymentClient_PayOrder_Call) Return(s string, err error) *PaymentClient_PayOrder_Call {
-	_c.Call.Return(s, err)
+func (_c *PaymentClient_PayOrder_Call) Return(uUID uuid.UUID, err error) *PaymentClient_PayOrder_Call {
+	_c.Call.Return(uUID, err)
 	return _c
 }
 
-func (_c *PaymentClient_PayOrder_Call) RunAndReturn(run func(ctx context.Context, orderUUID string, method model.PaymentMethod) (string, error)) *PaymentClient_PayOrder_Call {
+func (_c *PaymentClient_PayOrder_Call) RunAndReturn(run func(ctx context.Context, orderUUID uuid.UUID, method model.PaymentMethod) (uuid.UUID, error)) *PaymentClient_PayOrder_Call {
 	_c.Call.Return(run)
 	return _c
 }

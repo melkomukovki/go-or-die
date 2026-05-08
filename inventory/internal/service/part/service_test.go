@@ -9,19 +9,18 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/melkomukovki/go-or-die/inventory/internal/errors"
 	"github.com/melkomukovki/go-or-die/inventory/internal/model"
 	mockPart "github.com/melkomukovki/go-or-die/inventory/internal/service/part/mocks"
 )
 
 func TestService_Get(t *testing.T) {
 	t.Parallel()
-	validID := uuid.NewString()
+	validID := uuid.New()
 	repoErr := errors.New("ошибка репозитория")
 
 	tests := []struct {
 		name    string
-		id      string
+		id      uuid.UUID
 		prepare func(repo *mockPart.PartRepository)
 		wantErr error
 	}{
@@ -34,13 +33,6 @@ func TestService_Get(t *testing.T) {
 					Return(model.Part{}, nil).
 					Once()
 			},
-		},
-		{
-			name: "некорректный uuid",
-			id:   "invalid-uuid",
-			prepare: func(repo *mockPart.PartRepository) {
-			},
-			wantErr: errs.ErrInvalidUUID,
 		},
 		{
 			name: "ошибка репозитория",
@@ -75,8 +67,8 @@ func TestService_Get(t *testing.T) {
 func TestService_List(t *testing.T) {
 	t.Parallel()
 
-	validID1 := uuid.NewString()
-	validID2 := uuid.NewString()
+	validID1 := uuid.New()
+	validID2 := uuid.New()
 	repoErr := errors.New("repo error")
 
 	tests := []struct {
@@ -100,33 +92,26 @@ func TestService_List(t *testing.T) {
 		{
 			name: "корректный uuid",
 			filter: model.PartFilter{
-				UUIDs: []string{validID1, validID2},
+				UUIDs: []uuid.UUID{validID1, validID2},
 			},
 			prepare: func(repo *mockPart.PartRepository) {
 				repo.EXPECT().
 					List(mock.Anything, model.PartFilter{
-						UUIDs: []string{validID1, validID2},
+						UUIDs: []uuid.UUID{validID1, validID2},
 					}).
 					Return([]model.Part{}, nil).
 					Once()
 			},
 		},
 		{
-			name: "некорректный uuid",
-			filter: model.PartFilter{
-				UUIDs: []string{validID1, "invalid-uuid"},
-			},
-			wantErr: errs.ErrInvalidUUID,
-		},
-		{
 			name: "ошибка репозитория",
 			filter: model.PartFilter{
-				UUIDs: []string{validID1},
+				UUIDs: []uuid.UUID{validID1},
 			},
 			prepare: func(repo *mockPart.PartRepository) {
 				repo.EXPECT().
 					List(mock.Anything, model.PartFilter{
-						UUIDs: []string{validID1},
+						UUIDs: []uuid.UUID{validID1},
 					}).
 					Return(nil, repoErr).
 					Once()

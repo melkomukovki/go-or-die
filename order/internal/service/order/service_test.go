@@ -22,9 +22,9 @@ func TestService_Create(t *testing.T) {
 		orderRepo       *mocks.OrderRepository
 	}
 
-	hullUUID := uuid.New().String()
-	engineUUID := uuid.New().String()
-	shieldUUID := uuid.New().String()
+	hullUUID := uuid.New()
+	engineUUID := uuid.New()
+	shieldUUID := uuid.New()
 
 	tests := []struct {
 		name    string
@@ -40,7 +40,7 @@ func TestService_Create(t *testing.T) {
 				ShieldUUID: &shieldUUID,
 			},
 			setup: func(f fields) {
-				f.inventoryClient.On("ListParts", mock.Anything, []string{hullUUID, engineUUID, shieldUUID}).
+				f.inventoryClient.On("ListParts", mock.Anything, []uuid.UUID{hullUUID, engineUUID, shieldUUID}).
 					Return([]model.Part{
 						{UUID: hullUUID, Price: 100, StockQuantity: 10},
 						{UUID: engineUUID, Price: 200, StockQuantity: 5},
@@ -59,7 +59,7 @@ func TestService_Create(t *testing.T) {
 				EngineUUID: engineUUID,
 			},
 			setup: func(f fields) {
-				f.inventoryClient.On("ListParts", mock.Anything, []string{hullUUID, engineUUID}).
+				f.inventoryClient.On("ListParts", mock.Anything, []uuid.UUID{hullUUID, engineUUID}).
 					Return([]model.Part{
 						{UUID: hullUUID, Price: 100, StockQuantity: 0},
 						{UUID: engineUUID, Price: 200, StockQuantity: 5},
@@ -74,7 +74,7 @@ func TestService_Create(t *testing.T) {
 				EngineUUID: engineUUID,
 			},
 			setup: func(f fields) {
-				f.inventoryClient.On("ListParts", mock.Anything, []string{hullUUID, engineUUID}).
+				f.inventoryClient.On("ListParts", mock.Anything, []uuid.UUID{hullUUID, engineUUID}).
 					Return(nil, errors.New("inventory error"))
 			},
 			wantErr: errors.New("inventory error"),
@@ -86,7 +86,7 @@ func TestService_Create(t *testing.T) {
 				EngineUUID: engineUUID,
 			},
 			setup: func(f fields) {
-				f.inventoryClient.On("ListParts", mock.Anything, []string{hullUUID, engineUUID}).
+				f.inventoryClient.On("ListParts", mock.Anything, []uuid.UUID{hullUUID, engineUUID}).
 					Return([]model.Part{
 						{UUID: hullUUID, Price: 100, StockQuantity: 10},
 						{UUID: engineUUID, Price: 200, StockQuantity: 5},
@@ -134,11 +134,11 @@ func TestService_Get(t *testing.T) {
 		orderRepo *mocks.OrderRepository
 	}
 
-	orderUUID := uuid.New().String()
+	orderUUID := uuid.New()
 
 	tests := []struct {
 		name    string
-		id      string
+		id      uuid.UUID
 		setup   func(f fields)
 		wantErr error
 	}{
@@ -150,11 +150,6 @@ func TestService_Get(t *testing.T) {
 					Return(model.Order{UUID: orderUUID}, nil)
 			},
 			wantErr: nil,
-		},
-		{
-			name:    "неверный формат UUID",
-			id:      "invalid-uuid",
-			wantErr: errs.ErrInvalidUUID,
 		},
 		{
 			name: "заказ не найден",
@@ -201,13 +196,13 @@ func TestService_Pay(t *testing.T) {
 		orderRepo     *mocks.OrderRepository
 	}
 
-	orderUUID := uuid.New().String()
-	transactionUUID := uuid.New().String()
+	orderUUID := uuid.New()
+	transactionUUID := uuid.New()
 	method := model.PaymentMethodCard
 
 	tests := []struct {
 		name    string
-		id      string
+		id      uuid.UUID
 		method  model.PaymentMethod
 		setup   func(f fields)
 		wantErr error
@@ -245,7 +240,7 @@ func TestService_Pay(t *testing.T) {
 				f.orderRepo.On("Get", mock.Anything, orderUUID).
 					Return(model.Order{UUID: orderUUID, Status: model.OrderStatusPendingPayment}, nil)
 				f.paymentClient.On("PayOrder", mock.Anything, orderUUID, method).
-					Return("", errors.New("payment error"))
+					Return(uuid.UUID{}, errors.New("payment error"))
 			},
 			wantErr: errors.New("payment error"),
 		},
@@ -299,11 +294,11 @@ func TestService_Cancel(t *testing.T) {
 		orderRepo *mocks.OrderRepository
 	}
 
-	orderUUID := uuid.New().String()
+	orderUUID := uuid.New()
 
 	tests := []struct {
 		name    string
-		id      string
+		id      uuid.UUID
 		setup   func(f fields)
 		wantErr error
 	}{

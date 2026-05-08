@@ -10,17 +10,17 @@ import (
 func OrderToDto(order model.Order) orderv1.OrderDto {
 	var shieldUUID orderv1.OptNilUUID
 	if order.ShieldUUID != nil {
-		shieldUUID = orderv1.NewOptNilUUID(uuid.MustParse(*order.ShieldUUID))
+		shieldUUID = orderv1.NewOptNilUUID(*order.ShieldUUID)
 	}
 
 	var weaponUUID orderv1.OptNilUUID
 	if order.WeaponUUID != nil {
-		weaponUUID = orderv1.NewOptNilUUID(uuid.MustParse(*order.WeaponUUID))
+		weaponUUID = orderv1.NewOptNilUUID(*order.WeaponUUID)
 	}
 
 	var transactionUUID orderv1.OptNilUUID
 	if order.TransactionUUID != nil {
-		transactionUUID = orderv1.NewOptNilUUID(uuid.MustParse(*order.TransactionUUID))
+		transactionUUID = orderv1.NewOptNilUUID(*order.TransactionUUID)
 	}
 
 	var paymentMethod orderv1.OptNilPaymentMethod
@@ -29,9 +29,9 @@ func OrderToDto(order model.Order) orderv1.OrderDto {
 	}
 
 	return orderv1.OrderDto{
-		OrderUUID:       uuid.MustParse(order.UUID),
-		HullUUID:        uuid.MustParse(order.HullUUID),
-		EngineUUID:      uuid.MustParse(order.EngineUUID),
+		OrderUUID:       order.UUID,
+		HullUUID:        order.HullUUID,
+		EngineUUID:      order.EngineUUID,
 		ShieldUUID:      shieldUUID,
 		WeaponUUID:      weaponUUID,
 		TotalPrice:      order.TotalPrice,
@@ -43,19 +43,19 @@ func OrderToDto(order model.Order) orderv1.OrderDto {
 }
 
 func OrderReqToModel(req orderv1.CreateOrderRequest) model.CreateOrderRequest {
-	var shieldUUID *string
+	var shieldUUID *uuid.UUID
 	if val, ok := req.ShieldUUID.Get(); ok && val != uuid.Nil {
-		shieldUUID = new(val.String())
+		shieldUUID = &val
 	}
 
-	var weaponUUID *string
+	var weaponUUID *uuid.UUID
 	if val, ok := req.WeaponUUID.Get(); ok && val != uuid.Nil {
-		weaponUUID = new(val.String())
+		weaponUUID = &val
 	}
 
 	return model.CreateOrderRequest{
-		HullUUID:   req.HullUUID.String(),
-		EngineUUID: req.EngineUUID.String(),
+		HullUUID:   req.HullUUID,
+		EngineUUID: req.EngineUUID,
 		ShieldUUID: shieldUUID,
 		WeaponUUID: weaponUUID,
 	}

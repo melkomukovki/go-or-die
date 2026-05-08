@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/google/uuid"
+
 	errs "github.com/melkomukovki/go-or-die/order/internal/errors"
 	"github.com/melkomukovki/go-or-die/order/internal/model"
 	"github.com/melkomukovki/go-or-die/order/internal/repository/converter"
@@ -24,14 +26,14 @@ func NewRepository() *repository {
 func (r *repository) Create(ctx context.Context, order model.Order) error {
 	orderRecord := converter.OrderToRecord(order)
 	r.mu.Lock()
-	r.orders[order.UUID] = orderRecord
+	r.orders[order.UUID.String()] = orderRecord
 	r.mu.Unlock()
 	return nil
 }
 
-func (r *repository) Get(ctx context.Context, uuid string) (model.Order, error) {
+func (r *repository) Get(ctx context.Context, id uuid.UUID) (model.Order, error) {
 	r.mu.RLock()
-	orderRecord, ok := r.orders[uuid]
+	orderRecord, ok := r.orders[id.String()]
 	r.mu.RUnlock()
 
 	if !ok {
@@ -43,7 +45,7 @@ func (r *repository) Get(ctx context.Context, uuid string) (model.Order, error) 
 
 func (r *repository) Update(ctx context.Context, order model.Order) error {
 	r.mu.RLock()
-	_, ok := r.orders[order.UUID]
+	_, ok := r.orders[order.UUID.String()]
 	r.mu.RUnlock()
 
 	if !ok {
@@ -51,7 +53,7 @@ func (r *repository) Update(ctx context.Context, order model.Order) error {
 	}
 
 	r.mu.Lock()
-	r.orders[order.UUID] = converter.OrderToRecord(order)
+	r.orders[order.UUID.String()] = converter.OrderToRecord(order)
 	r.mu.Unlock()
 
 	return nil

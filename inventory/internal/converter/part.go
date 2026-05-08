@@ -9,7 +9,7 @@ import (
 
 func PartToProto(part model.Part) *inventoryv1.Part {
 	return &inventoryv1.Part{
-		Uuid:          part.UUID,
+		Uuid:          part.UUID.String(),
 		Name:          part.Name,
 		Description:   part.Description,
 		Price:         part.Price,

@@ -6,18 +6,13 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
-
 	errs "github.com/melkomukovki/go-or-die/order/internal/errors"
 	"github.com/melkomukovki/go-or-die/order/internal/model"
 	orderv1 "github.com/melkomukovki/go-or-die/shared/pkg/openapi/order/v1"
 )
 
 func (a *api) PayOrder(ctx context.Context, req *orderv1.PayOrderRequest, param orderv1.PayOrderParams) (orderv1.PayOrderRes, error) {
-	orderUuid := param.OrderUUID.String()
-	paymentMethod := req.PaymentMethod
-
-	transactionUuid, err := a.orderService.Pay(ctx, orderUuid, model.PaymentMethod(paymentMethod))
+	transactionUuid, err := a.orderService.Pay(ctx, param.OrderUUID, model.PaymentMethod(req.PaymentMethod))
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrOrderAlreadyPaid) || errors.Is(err, errs.ErrOrderPendingPaymentMismatch):
@@ -45,6 +40,6 @@ func (a *api) PayOrder(ctx context.Context, req *orderv1.PayOrderRequest, param 
 	}
 
 	return &orderv1.PayOrderResponse{
-		TransactionUUID: uuid.MustParse(transactionUuid),
+		TransactionUUID: transactionUuid,
 	}, nil
 }
