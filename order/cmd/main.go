@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	orderHandler "github.com/melkomukovki/go-or-die/order/pkg/handler"
+	"github.com/melkomukovki/go-or-die/order/pkg/app"
 	inventoryv1 "github.com/melkomukovki/go-or-die/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/melkomukovki/go-or-die/shared/pkg/proto/payment/v1"
 )
@@ -79,24 +79,18 @@ func main() {
 		}
 	}()
 
-	// Создаём хранилище и обработчик
-	store := orderHandler.NewOrderStore()
-	h := orderHandler.NewOrderHandler(
-		inventoryv1.NewInventoryServiceClient(inventoryConn),
-		paymentv1.NewPaymentServiceClient(paymentConn),
-		store,
-	)
+	inventoryClient := inventoryv1.NewInventoryServiceClient(inventoryConn)
+	paymentClient := paymentv1.NewPaymentServiceClient(paymentConn)
 
-	// Создать OpenAPI сервер
-	orderServer, err := orderHandler.SetupServer(h)
+	handler, err := app.NewHTTPHandler(inventoryClient, paymentClient)
 	if err != nil {
-		slog.Error("ошибка создания сервера OpenAPI", "error", err)
+		slog.Error("не удалось создать HTTP обработчик", "error", err)
 		return
 	}
 
 	httpServer := &http.Server{
 		Addr:              httpAddress,
-		Handler:           orderServer,
+		Handler:           handler,
 		ReadHeaderTimeout: httpReadHeaderTimeout,
 		ReadTimeout:       httpReadTimeout,
 		WriteTimeout:      httpWriteTimeout,
