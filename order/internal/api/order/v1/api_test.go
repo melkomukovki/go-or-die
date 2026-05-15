@@ -1,9 +1,8 @@
-package v1
+package order
 
 import (
 	"context"
 	"errors"
-	"net/http"
 	"testing"
 	"time"
 
@@ -42,8 +41,10 @@ func TestAPI_CreateOrder(t *testing.T) {
 				s.EXPECT().
 					Create(mock.Anything, mock.Anything).
 					Return(model.Order{
-						UUID:       orderUUID,
-						TotalPrice: 1000,
+						UUID: orderUUID,
+						Items: []model.OrderItem{
+							{PartUUID: hullUUID, PartType: model.PartTypeHull, Price: 1000},
+						},
 					}, nil).
 					Once()
 			},
@@ -64,10 +65,7 @@ func TestAPI_CreateOrder(t *testing.T) {
 					Return(model.Order{}, errs.ErrInvalidUUID).
 					Once()
 			},
-			wantRes: &orderv1.CreateOrderBadRequest{
-				Code:    http.StatusBadRequest,
-				Message: errs.ErrInvalidUUID.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "деталь не найдена",
@@ -81,10 +79,7 @@ func TestAPI_CreateOrder(t *testing.T) {
 					Return(model.Order{}, errs.ErrPartNotFound).
 					Once()
 			},
-			wantRes: &orderv1.CreateOrderNotFound{
-				Code:    http.StatusNotFound,
-				Message: errs.ErrPartNotFound.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "нет в наличии",
@@ -98,10 +93,7 @@ func TestAPI_CreateOrder(t *testing.T) {
 					Return(model.Order{}, errs.ErrOutOfStock).
 					Once()
 			},
-			wantRes: &orderv1.CreateOrderConflict{
-				Code:    http.StatusConflict,
-				Message: errs.ErrOutOfStock.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "внутренняя ошибка",
@@ -115,10 +107,7 @@ func TestAPI_CreateOrder(t *testing.T) {
 					Return(model.Order{}, serviceErr).
 					Once()
 			},
-			wantRes: &orderv1.CreateOrderInternalServerError{
-				Code:    http.StatusInternalServerError,
-				Message: "внутренняя ошибка сервера",
-			},
+			wantErr: true,
 		},
 	}
 
@@ -134,6 +123,10 @@ func TestAPI_CreateOrder(t *testing.T) {
 			api := NewAPI(service)
 			res, err := api.CreateOrder(context.Background(), tt.req)
 
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantRes, res)
 		})
@@ -153,6 +146,7 @@ func TestAPI_GetOrder(t *testing.T) {
 		params  orderv1.GetOrderParams
 		prepare func(s *mocks.OrderService)
 		wantRes orderv1.GetOrderRes
+		wantErr bool
 	}{
 		{
 			name: "успешный",
@@ -163,12 +157,13 @@ func TestAPI_GetOrder(t *testing.T) {
 				s.EXPECT().
 					Get(mock.Anything, orderUUID).
 					Return(model.Order{
-						UUID:       orderUUID,
-						HullUUID:   hullUUID,
-						EngineUUID: engineUUID,
-						TotalPrice: 1000,
-						Status:     model.OrderStatusPendingPayment,
-						CreatedAt:  now,
+						UUID: orderUUID,
+						Items: []model.OrderItem{
+							{PartUUID: hullUUID, PartType: model.PartTypeHull, Price: 400},
+							{PartUUID: engineUUID, PartType: model.PartTypeEngine, Price: 600},
+						},
+						Status:    model.OrderStatusPendingPayment,
+						CreatedAt: now,
 					}, nil).
 					Once()
 			},
@@ -192,10 +187,7 @@ func TestAPI_GetOrder(t *testing.T) {
 					Return(model.Order{}, errs.ErrOrderNotFound).
 					Once()
 			},
-			wantRes: &orderv1.GetOrderNotFound{
-				Code:    http.StatusNotFound,
-				Message: "заказ не найден",
-			},
+			wantErr: true,
 		},
 		{
 			name: "внутренняя ошибка",
@@ -208,10 +200,7 @@ func TestAPI_GetOrder(t *testing.T) {
 					Return(model.Order{}, errors.New("error")).
 					Once()
 			},
-			wantRes: &orderv1.GetOrderInternalServerError{
-				Code:    http.StatusInternalServerError,
-				Message: "внутренняя ошибка сервера",
-			},
+			wantErr: true,
 		},
 	}
 
@@ -227,6 +216,10 @@ func TestAPI_GetOrder(t *testing.T) {
 			api := NewAPI(service)
 			res, err := api.GetOrder(context.Background(), tt.params)
 
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantRes, res)
 		})
@@ -245,6 +238,7 @@ func TestAPI_PayOrder(t *testing.T) {
 		params  orderv1.PayOrderParams
 		prepare func(s *mocks.OrderService)
 		wantRes orderv1.PayOrderRes
+		wantErr bool
 	}{
 		{
 			name: "успех",
@@ -278,10 +272,7 @@ func TestAPI_PayOrder(t *testing.T) {
 					Return(uuid.Nil, errs.ErrOrderAlreadyPaid).
 					Once()
 			},
-			wantRes: &orderv1.PayOrderConflict{
-				Code:    http.StatusConflict,
-				Message: errs.ErrOrderAlreadyPaid.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "заказ не найден",
@@ -297,10 +288,7 @@ func TestAPI_PayOrder(t *testing.T) {
 					Return(uuid.Nil, errs.ErrOrderNotFound).
 					Once()
 			},
-			wantRes: &orderv1.PayOrderNotFound{
-				Code:    http.StatusNotFound,
-				Message: errs.ErrOrderNotFound.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "некорректный запрос",
@@ -316,10 +304,7 @@ func TestAPI_PayOrder(t *testing.T) {
 					Return(uuid.Nil, errs.ErrInvalidUUID).
 					Once()
 			},
-			wantRes: &orderv1.PayOrderBadRequest{
-				Code:    http.StatusBadRequest,
-				Message: errs.ErrInvalidUUID.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "внутренняя ошибка",
@@ -335,10 +320,7 @@ func TestAPI_PayOrder(t *testing.T) {
 					Return(uuid.Nil, errors.New("error")).
 					Once()
 			},
-			wantRes: &orderv1.PayOrderInternalServerError{
-				Code:    http.StatusInternalServerError,
-				Message: "внутренняя ошибка сервера",
-			},
+			wantErr: true,
 		},
 	}
 
@@ -354,6 +336,10 @@ func TestAPI_PayOrder(t *testing.T) {
 			api := NewAPI(service)
 			res, err := api.PayOrder(context.Background(), tt.req, tt.params)
 
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantRes, res)
 		})
@@ -370,6 +356,7 @@ func TestAPI_CancelOrder(t *testing.T) {
 		params  orderv1.CancelOrderParams
 		prepare func(s *mocks.OrderService)
 		wantRes orderv1.CancelOrderRes
+		wantErr bool
 	}{
 		{
 			name: "успешный",
@@ -395,10 +382,7 @@ func TestAPI_CancelOrder(t *testing.T) {
 					Return(errs.ErrOrderNotFound).
 					Once()
 			},
-			wantRes: &orderv1.CancelOrderNotFound{
-				Code:    http.StatusNotFound,
-				Message: errs.ErrOrderNotFound.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "конфликт",
@@ -411,10 +395,7 @@ func TestAPI_CancelOrder(t *testing.T) {
 					Return(errs.ErrOrderPendingPaymentMismatch).
 					Once()
 			},
-			wantRes: &orderv1.CancelOrderConflict{
-				Code:    http.StatusConflict,
-				Message: errs.ErrOrderPendingPaymentMismatch.Error(),
-			},
+			wantErr: true,
 		},
 		{
 			name: "внутренняя ошибка",
@@ -427,10 +408,7 @@ func TestAPI_CancelOrder(t *testing.T) {
 					Return(errors.New("error")).
 					Once()
 			},
-			wantRes: &orderv1.CancelOrderInternalServerError{
-				Code:    http.StatusInternalServerError,
-				Message: "внутренняя ошибка сервера",
-			},
+			wantErr: true,
 		},
 	}
 
@@ -446,6 +424,10 @@ func TestAPI_CancelOrder(t *testing.T) {
 			api := NewAPI(service)
 			res, err := api.CancelOrder(context.Background(), tt.params)
 
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantRes, res)
 		})

@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +17,11 @@ func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 		return uuid.UUID{}, err
 	}
 
-	if order.Status != model.OrderStatusPendingPayment {
-		return uuid.UUID{}, errs.ErrOrderPendingPaymentMismatch
+	switch order.Status {
+	case model.OrderStatusPaid:
+		return uuid.UUID{}, errs.ErrOrderAlreadyPaid
+	case model.OrderStatusCancelled:
+		return uuid.UUID{}, errs.ErrOrderCancelled
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
@@ -32,9 +36,11 @@ func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 	order.PaymentMethod = &method
 	order.TransactionUUID = &tId
 
-	err = s.orderRepo.Update(ctx, order)
+	err = s.txManager.Do(ctx, func(ctx context.Context) error {
+		return s.orderRepo.Update(ctx, order)
+	})
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, fmt.Errorf("обновить заказ: %w", err)
 	}
 
 	return tId, nil

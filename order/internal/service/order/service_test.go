@@ -14,12 +14,25 @@ import (
 	"github.com/melkomukovki/go-or-die/order/internal/service/order/mocks"
 )
 
+type mockTxManager struct {
+	mock.Mock
+}
+
+func (m *mockTxManager) Do(ctx context.Context, fn func(ctx context.Context) error) error {
+	args := m.Called(mock.Anything, mock.Anything)
+	if args.Get(0) != nil {
+		return args.Error(0)
+	}
+	return fn(ctx)
+}
+
 func TestService_Create(t *testing.T) {
 	t.Parallel()
 
 	type fields struct {
 		inventoryClient *mocks.InventoryClient
 		orderRepo       *mocks.OrderRepository
+		txManager       *mockTxManager
 	}
 
 	hullUUID := uuid.New()
@@ -28,13 +41,13 @@ func TestService_Create(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		req     model.CreateOrderRequest
+		req     model.CreateOrderInput
 		setup   func(f fields)
 		wantErr error
 	}{
 		{
 			name: "успешное создание заказа",
-			req: model.CreateOrderRequest{
+			req: model.CreateOrderInput{
 				HullUUID:   hullUUID,
 				EngineUUID: engineUUID,
 				ShieldUUID: &shieldUUID,
@@ -47,14 +60,15 @@ func TestService_Create(t *testing.T) {
 						{UUID: shieldUUID, Price: 50, StockQuantity: 1},
 					}, nil)
 				f.orderRepo.On("Create", mock.Anything, mock.MatchedBy(func(o model.Order) bool {
-					return o.HullUUID == hullUUID && o.TotalPrice == 350 && o.Status == model.OrderStatusPendingPayment
+					return o.TotalPrice() == 350 && o.Status == model.OrderStatusPendingPayment
 				})).Return(nil)
+				f.txManager.On("Do", mock.Anything, mock.Anything).Return(nil)
 			},
 			wantErr: nil,
 		},
 		{
 			name: "ошибка: детали нет на складе",
-			req: model.CreateOrderRequest{
+			req: model.CreateOrderInput{
 				HullUUID:   hullUUID,
 				EngineUUID: engineUUID,
 			},
@@ -69,7 +83,7 @@ func TestService_Create(t *testing.T) {
 		},
 		{
 			name: "ошибка клиента инвентаризации",
-			req: model.CreateOrderRequest{
+			req: model.CreateOrderInput{
 				HullUUID:   hullUUID,
 				EngineUUID: engineUUID,
 			},
@@ -81,7 +95,7 @@ func TestService_Create(t *testing.T) {
 		},
 		{
 			name: "ошибка репозитория при создании",
-			req: model.CreateOrderRequest{
+			req: model.CreateOrderInput{
 				HullUUID:   hullUUID,
 				EngineUUID: engineUUID,
 			},
@@ -91,8 +105,7 @@ func TestService_Create(t *testing.T) {
 						{UUID: hullUUID, Price: 100, StockQuantity: 10},
 						{UUID: engineUUID, Price: 200, StockQuantity: 5},
 					}, nil)
-				f.orderRepo.On("Create", mock.Anything, mock.Anything).
-					Return(errors.New("repo error"))
+				f.txManager.On("Do", mock.Anything, mock.Anything).Return(errors.New("repo error"))
 			},
 			wantErr: errors.New("repo error"),
 		},
@@ -105,13 +118,14 @@ func TestService_Create(t *testing.T) {
 			f := fields{
 				inventoryClient: mocks.NewInventoryClient(t),
 				orderRepo:       mocks.NewOrderRepository(t),
+				txManager:       &mockTxManager{},
 			}
 
 			if tt.setup != nil {
 				tt.setup(f)
 			}
 
-			s := NewService(f.inventoryClient, nil, f.orderRepo)
+			s := NewService(f.inventoryClient, nil, f.orderRepo, f.txManager)
 			res, err := s.Create(context.Background(), tt.req)
 
 			if tt.wantErr != nil {
@@ -120,8 +134,6 @@ func TestService_Create(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, res.UUID)
-				assert.Equal(t, tt.req.HullUUID, res.HullUUID)
-				assert.Equal(t, tt.req.EngineUUID, res.EngineUUID)
 			}
 		})
 	}
@@ -132,6 +144,7 @@ func TestService_Get(t *testing.T) {
 
 	type fields struct {
 		orderRepo *mocks.OrderRepository
+		txManager *mockTxManager
 	}
 
 	orderUUID := uuid.New()
@@ -168,13 +181,14 @@ func TestService_Get(t *testing.T) {
 
 			f := fields{
 				orderRepo: mocks.NewOrderRepository(t),
+				txManager: &mockTxManager{},
 			}
 
 			if tt.setup != nil {
 				tt.setup(f)
 			}
 
-			s := NewService(nil, nil, f.orderRepo)
+			s := NewService(nil, nil, f.orderRepo, f.txManager)
 			res, err := s.Get(context.Background(), tt.id)
 
 			if tt.wantErr != nil {
@@ -194,6 +208,7 @@ func TestService_Pay(t *testing.T) {
 	type fields struct {
 		paymentClient *mocks.PaymentClient
 		orderRepo     *mocks.OrderRepository
+		txManager     *mockTxManager
 	}
 
 	orderUUID := uuid.New()
@@ -219,6 +234,7 @@ func TestService_Pay(t *testing.T) {
 				f.orderRepo.On("Update", mock.Anything, mock.MatchedBy(func(o model.Order) bool {
 					return o.UUID == orderUUID && o.Status == model.OrderStatusPaid && *o.TransactionUUID == transactionUUID
 				})).Return(nil)
+				f.txManager.On("Do", mock.Anything, mock.Anything).Return(nil)
 			},
 			wantErr: nil,
 		},
@@ -230,7 +246,7 @@ func TestService_Pay(t *testing.T) {
 				f.orderRepo.On("Get", mock.Anything, orderUUID).
 					Return(model.Order{UUID: orderUUID, Status: model.OrderStatusPaid}, nil)
 			},
-			wantErr: errs.ErrOrderPendingPaymentMismatch,
+			wantErr: errs.ErrOrderAlreadyPaid,
 		},
 		{
 			name:   "ошибка платежного клиента",
@@ -253,8 +269,7 @@ func TestService_Pay(t *testing.T) {
 					Return(model.Order{UUID: orderUUID, Status: model.OrderStatusPendingPayment}, nil)
 				f.paymentClient.On("PayOrder", mock.Anything, orderUUID, method).
 					Return(transactionUUID, nil)
-				f.orderRepo.On("Update", mock.Anything, mock.Anything).
-					Return(errors.New("update error"))
+				f.txManager.On("Do", mock.Anything, mock.Anything).Return(errors.New("update error"))
 			},
 			wantErr: errors.New("update error"),
 		},
@@ -267,13 +282,14 @@ func TestService_Pay(t *testing.T) {
 			f := fields{
 				paymentClient: mocks.NewPaymentClient(t),
 				orderRepo:     mocks.NewOrderRepository(t),
+				txManager:     &mockTxManager{},
 			}
 
 			if tt.setup != nil {
 				tt.setup(f)
 			}
 
-			s := NewService(nil, f.paymentClient, f.orderRepo)
+			s := NewService(nil, f.paymentClient, f.orderRepo, f.txManager)
 			res, err := s.Pay(context.Background(), tt.id, tt.method)
 
 			if tt.wantErr != nil {
@@ -292,6 +308,7 @@ func TestService_Cancel(t *testing.T) {
 
 	type fields struct {
 		orderRepo *mocks.OrderRepository
+		txManager *mockTxManager
 	}
 
 	orderUUID := uuid.New()
@@ -330,7 +347,7 @@ func TestService_Cancel(t *testing.T) {
 				f.orderRepo.On("Get", mock.Anything, orderUUID).
 					Return(model.Order{UUID: orderUUID, Status: model.OrderStatusPaid}, nil)
 			},
-			wantErr: errs.ErrOrderPendingPaymentMismatch,
+			wantErr: errs.ErrOrderAlreadyPaid,
 		},
 	}
 
@@ -340,13 +357,14 @@ func TestService_Cancel(t *testing.T) {
 
 			f := fields{
 				orderRepo: mocks.NewOrderRepository(t),
+				txManager: &mockTxManager{},
 			}
 
 			if tt.setup != nil {
 				tt.setup(f)
 			}
 
-			s := NewService(nil, nil, f.orderRepo)
+			s := NewService(nil, nil, f.orderRepo, f.txManager)
 			err := s.Cancel(context.Background(), tt.id)
 
 			if tt.wantErr != nil {

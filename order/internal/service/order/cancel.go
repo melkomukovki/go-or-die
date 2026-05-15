@@ -15,8 +15,11 @@ func (s *service) Cancel(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	if order.Status != model.OrderStatusPendingPayment {
-		return errs.ErrOrderPendingPaymentMismatch
+	switch order.Status {
+	case model.OrderStatusCancelled:
+		return errs.ErrOrderCancelled
+	case model.OrderStatusPaid:
+		return errs.ErrOrderAlreadyPaid
 	}
 
 	order.Status = model.OrderStatusCancelled

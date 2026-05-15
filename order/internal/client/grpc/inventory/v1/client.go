@@ -2,15 +2,20 @@ package v1
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/melkomukovki/go-or-die/order/internal/client/grpc/inventory/v1/converter"
 	errs "github.com/melkomukovki/go-or-die/order/internal/errors"
 	"github.com/melkomukovki/go-or-die/order/internal/model"
 	inventoryv1 "github.com/melkomukovki/go-or-die/shared/pkg/proto/inventory/v1"
 )
+
+const grpcTimeout = time.Second * 5
 
 type client struct {
 	client inventoryv1.InventoryServiceClient
@@ -26,7 +31,10 @@ func (c *client) ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part
 		uuidsStr[i] = id.String()
 	}
 
-	resp, err := c.client.ListParts(ctx, &inventoryv1.ListPartsRequest{
+	grpcCtx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	resp, err := c.client.ListParts(grpcCtx, &inventoryv1.ListPartsRequest{
 		Uuids: uuidsStr,
 	})
 	if err != nil {
@@ -34,19 +42,8 @@ func (c *client) ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part
 		if ok && st.Code() == codes.NotFound {
 			return nil, errs.ErrPartNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("вызвать InventorySerive.ListParts: %w", err)
 	}
 
-	parts := resp.GetParts()
-	var partsResp []model.Part
-	for _, part := range parts {
-		modelPart := model.Part{
-			UUID:          uuid.MustParse(part.Uuid),
-			Name:          part.Name,
-			Price:         part.Price,
-			StockQuantity: part.StockQuantity,
-		}
-		partsResp = append(partsResp, modelPart)
-	}
-	return partsResp, nil
+	return converter.PartsToModel(resp.GetParts()), nil
 }
