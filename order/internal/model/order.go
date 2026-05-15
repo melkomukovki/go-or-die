@@ -8,15 +8,19 @@ import (
 
 type Order struct {
 	UUID            uuid.UUID
-	HullUUID        uuid.UUID
-	EngineUUID      uuid.UUID
-	ShieldUUID      *uuid.UUID
-	WeaponUUID      *uuid.UUID
-	TotalPrice      int64
+	Items           []OrderItem
 	TransactionUUID *uuid.UUID
 	PaymentMethod   *PaymentMethod
 	Status          OrderStatus
 	CreatedAt       time.Time
+}
+
+func (o Order) TotalPrice() int64 {
+	var total int64
+	for _, item := range o.Items {
+		total += item.Price
+	}
+	return total
 }
 
 type PaymentMethod string
@@ -36,9 +40,20 @@ const (
 	OrderStatusCancelled      OrderStatus = "CANCELLED"
 )
 
-type CreateOrderRequest struct {
+type CreateOrderInput struct {
 	HullUUID   uuid.UUID
 	EngineUUID uuid.UUID
 	ShieldUUID *uuid.UUID
 	WeaponUUID *uuid.UUID
+}
+
+func (i *CreateOrderInput) PartUUIDs() []uuid.UUID {
+	uuids := []uuid.UUID{i.HullUUID, i.EngineUUID}
+	if i.ShieldUUID != nil {
+		uuids = append(uuids, *i.ShieldUUID)
+	}
+	if i.WeaponUUID != nil {
+		uuids = append(uuids, *i.WeaponUUID)
+	}
+	return uuids
 }

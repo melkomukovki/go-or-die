@@ -1,4 +1,4 @@
-package v1
+package order
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 )
 
 type OrderService interface {
-	Create(ctx context.Context, req model.CreateOrderRequest) (model.Order, error)
+	Create(ctx context.Context, req model.CreateOrderInput) (model.Order, error)
 	Get(ctx context.Context, uuid uuid.UUID) (model.Order, error)
 	Pay(ctx context.Context, uuid uuid.UUID, method model.PaymentMethod) (uuid.UUID, error)
 	Cancel(ctx context.Context, uuid uuid.UUID) error

@@ -21,3 +21,7 @@ type InventoryClient interface {
 type PaymentClient interface {
 	PayOrder(ctx context.Context, orderUUID uuid.UUID, method model.PaymentMethod) (uuid.UUID, error)
 }
+
+type TxManager interface {
+	Do(ctx context.Context, fn func(ctx context.Context) error) error
+}

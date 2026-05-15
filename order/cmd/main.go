@@ -3,12 +3,18 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -34,6 +40,8 @@ const (
 	// gRPC-клиент keepalive параметры.
 	grpcKeepaliveTime    = 5 * time.Minute
 	grpcKeepaliveTimeout = 1 * time.Second
+
+	envFileLocation = "order.env"
 )
 
 func main() {
@@ -82,7 +90,20 @@ func main() {
 	inventoryClient := inventoryv1.NewInventoryServiceClient(inventoryConn)
 	paymentClient := paymentv1.NewPaymentServiceClient(paymentConn)
 
-	handler, err := app.NewHTTPHandler(inventoryClient, paymentClient)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	err = godotenv.Load(envFileLocation)
+	if err != nil {
+		slog.Error("ошибка загрузки переменных окружения", "error", err, "file", envFileLocation)
+	}
+
+	pool, txManager, err := newDB(ctx)
+	if err != nil {
+		slog.Error("ошибка инициализации БД", "error", err)
+	}
+
+	handler, err := app.NewHTTPHandler(pool, txManager, inventoryClient, paymentClient)
 	if err != nil {
 		slog.Error("не удалось создать HTTP обработчик", "error", err)
 		return
@@ -96,9 +117,6 @@ func main() {
 		WriteTimeout:      httpWriteTimeout,
 		IdleTimeout:       httpIdleTimeout,
 	}
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 
 	go func() {
 		slog.Info("HTTP сервер запущен", "address", httpAddress)
@@ -118,4 +136,24 @@ func main() {
 		slog.Error("ошибка при остановке HTTP сервера", "error", shutdownErr)
 	}
 	slog.Info("HTTP сервер остановлен")
+}
+
+func newDB(ctx context.Context) (*pgxpool.Pool, *manager.Manager, error) {
+	dbURI := os.Getenv("DB_URI")
+	if dbURI == "" {
+		return nil, nil, errors.New("переменная окружения DB_URI не установлена")
+	}
+
+	pool, err := pgxpool.New(ctx, dbURI)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ошибка подключения к БД: %w", err)
+	}
+	defer pool.Close()
+
+	txManager, err := manager.New(trmpgx.NewDefaultFactory(pool))
+	if err != nil {
+		slog.Error("ошибка при создании транзакционного менеджера", "error", err)
+		return nil, nil, fmt.Errorf("ошибка при создании транзакционного менеджера: %w", err)
+	}
+	return pool, txManager, nil
 }

@@ -13,8 +13,9 @@ type Part struct {
 type PartType string
 
 const (
-	PartTypeHull   PartType = "HULL"
-	PartTypeEngine PartType = "ENGINE"
-	PartTypeShield PartType = "SHIELD"
-	PartTypeWeapon PartType = "WEAPON"
+	PartTypeUnspecified PartType = "UNSPECIFIED"
+	PartTypeHull        PartType = "HULL"
+	PartTypeEngine      PartType = "ENGINE"
+	PartTypeShield      PartType = "SHIELD"
+	PartTypeWeapon      PartType = "WEAPON"
 )

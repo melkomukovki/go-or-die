@@ -7,42 +7,67 @@ import (
 	orderv1 "github.com/melkomukovki/go-or-die/shared/pkg/openapi/order/v1"
 )
 
-func OrderToDto(order model.Order) orderv1.OrderDto {
-	var shieldUUID orderv1.OptNilUUID
-	if order.ShieldUUID != nil {
-		shieldUUID = orderv1.NewOptNilUUID(*order.ShieldUUID)
+func OrderToDto(order model.Order) *orderv1.OrderDto {
+	dto := &orderv1.OrderDto{
+		OrderUUID:  order.UUID,
+		TotalPrice: order.TotalPrice(),
+		Status:     OrderStatusToDTO(order.Status),
+		CreatedAt:  order.CreatedAt,
 	}
 
-	var weaponUUID orderv1.OptNilUUID
-	if order.WeaponUUID != nil {
-		weaponUUID = orderv1.NewOptNilUUID(*order.WeaponUUID)
+	for _, item := range order.Items {
+		switch item.PartType {
+		case model.PartTypeHull:
+			dto.HullUUID = item.PartUUID
+		case model.PartTypeEngine:
+			dto.EngineUUID = item.PartUUID
+		case model.PartTypeShield:
+			dto.ShieldUUID = orderv1.NewOptNilUUID(item.PartUUID)
+		case model.PartTypeWeapon:
+			dto.WeaponUUID = orderv1.NewOptNilUUID(item.PartUUID)
+		}
 	}
 
-	var transactionUUID orderv1.OptNilUUID
 	if order.TransactionUUID != nil {
-		transactionUUID = orderv1.NewOptNilUUID(*order.TransactionUUID)
+		dto.TransactionUUID = orderv1.NewOptNilUUID(*order.TransactionUUID)
 	}
 
-	var paymentMethod orderv1.OptNilPaymentMethod
 	if order.PaymentMethod != nil {
-		paymentMethod = orderv1.NewOptNilPaymentMethod(orderv1.PaymentMethod(*order.PaymentMethod))
+		dto.PaymentMethod = orderv1.NewOptNilPaymentMethod(PaymentMethodToDTO(*order.PaymentMethod))
 	}
 
-	return orderv1.OrderDto{
-		OrderUUID:       order.UUID,
-		HullUUID:        order.HullUUID,
-		EngineUUID:      order.EngineUUID,
-		ShieldUUID:      shieldUUID,
-		WeaponUUID:      weaponUUID,
-		TotalPrice:      order.TotalPrice,
-		TransactionUUID: transactionUUID,
-		PaymentMethod:   paymentMethod,
-		Status:          orderv1.OrderStatus(order.Status),
-		CreatedAt:       order.CreatedAt,
+	return dto
+}
+
+func OrderStatusToDTO(s model.OrderStatus) orderv1.OrderStatus {
+	switch s {
+	case model.OrderStatusPendingPayment:
+		return orderv1.OrderStatusPENDINGPAYMENT
+	case model.OrderStatusPaid:
+		return orderv1.OrderStatusPAID
+	case model.OrderStatusCancelled:
+		return orderv1.OrderStatusCANCELLED
+	default:
+		return orderv1.OrderStatus(s)
 	}
 }
 
-func OrderReqToModel(req orderv1.CreateOrderRequest) model.CreateOrderRequest {
+func PaymentMethodToDTO(m model.PaymentMethod) orderv1.PaymentMethod {
+	switch m {
+	case model.PaymentMethodCard:
+		return orderv1.PaymentMethodCARD
+	case model.PaymentMethodSBP:
+		return orderv1.PaymentMethodSBP
+	case model.PaymentMethodCreditCard:
+		return orderv1.PaymentMethodCREDITCARD
+	case model.PaymentMethodInvestorMoney:
+		return orderv1.PaymentMethodINVESTORMONEY
+	default:
+		return orderv1.PaymentMethod(m)
+	}
+}
+
+func OrderReqToModel(req orderv1.CreateOrderRequest) model.CreateOrderInput {
 	var shieldUUID *uuid.UUID
 	if val, ok := req.ShieldUUID.Get(); ok && val != uuid.Nil {
 		shieldUUID = &val
@@ -53,7 +78,7 @@ func OrderReqToModel(req orderv1.CreateOrderRequest) model.CreateOrderRequest {
 		weaponUUID = &val
 	}
 
-	return model.CreateOrderRequest{
+	return model.CreateOrderInput{
 		HullUUID:   req.HullUUID,
 		EngineUUID: req.EngineUUID,
 		ShieldUUID: shieldUUID,

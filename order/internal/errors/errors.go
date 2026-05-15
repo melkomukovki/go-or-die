@@ -10,4 +10,5 @@ var (
 	ErrPartNotFound                = errors.New("деталь не найдена")
 	ErrOutOfStock                  = errors.New("деталь отсутствует на складе")
 	ErrOrderPendingPaymentMismatch = errors.New("заказ не в статусе ожидания оплаты")
+	ErrInvalidPaymentMethod        = errors.New("неверный метод оплаты")
 )

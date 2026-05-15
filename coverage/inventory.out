@@ -20,9 +20,6 @@ github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:41
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:47.2,48.29 2 0
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:48.29,50.3 1 0
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:51.2,51.63 1 0
-github.com/melkomukovki/go-or-die/inventory/internal/service/part/get.go:11.78,13.2 1 2
-github.com/melkomukovki/go-or-die/inventory/internal/service/part/list.go:9.92,11.2 1 3
-github.com/melkomukovki/go-or-die/inventory/internal/service/part/service.go:7.51,11.2 1 5
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/api.go:11.43,13.2 1 0
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/get.go:17.115,20.16 3 0
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/get.go:20.16,22.3 1 0
@@ -44,3 +41,6 @@ github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:41
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:47.2,48.29 2 0
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:48.29,50.3 1 0
 github.com/melkomukovki/go-or-die/inventory/internal/api/inventory/v1/list.go:51.2,51.63 1 0
+github.com/melkomukovki/go-or-die/inventory/internal/service/part/get.go:11.78,13.2 1 2
+github.com/melkomukovki/go-or-die/inventory/internal/service/part/list.go:9.92,11.2 1 3
+github.com/melkomukovki/go-or-die/inventory/internal/service/part/service.go:7.51,11.2 1 5

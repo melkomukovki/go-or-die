@@ -4,10 +4,13 @@ import (
 	"context"
 	"log/slog"
 	"net"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -24,6 +27,8 @@ const (
 	grpcKeepaliveTime         = 5 * time.Minute
 	grpcKeepaliveTimeout      = 1 * time.Second
 	grpcMinPingInterval       = 5 * time.Minute
+
+	envFileLocation = "inventory.env"
 )
 
 func main() {
@@ -47,13 +52,32 @@ func main() {
 		}),
 	)
 
-	app.RegisterServices(grpcServer)
+	// Создаем подключение к БД
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	err = godotenv.Load(envFileLocation)
+	if err != nil {
+		slog.Error("ошибка загрузки переменных окружения", "error", err, "file", envFileLocation)
+	}
+
+	dbURI := os.Getenv("DB_URI")
+	if dbURI == "" {
+		slog.Error("переменная окружения DB_URI не установлена")
+		return
+	}
+
+	pool, err := pgxpool.New(ctx, dbURI)
+	if err != nil {
+		slog.Error("ошибка подключения к БД", "error", err)
+		return
+	}
+	defer pool.Close()
+
+	app.RegisterServices(grpcServer, pool)
 
 	// Включаем reflection для postman/grpcurl
 	reflection.Register(grpcServer)
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 
 	go func() {
 		slog.Info("запуск InventoryService", "адрес", grpcAddress)
